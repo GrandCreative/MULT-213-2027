@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Quest</title>
+<style>
+  /* ============================================================
+     Colours: "meadow" (light) and "pond at night" (dark)
+     Press T (or the ◐ button) to switch.
+     ============================================================ */
+  :root {
+    --bg: #edf4e4;
+    --surface: #ffffff;
+    --surface-2: #e2ecd6;
+    --text: #1b2a19;
+    --muted: #5a6a55;
+    --border: #c9d8bd;
+    --accent: #2f8f3a;
+    --accent-text: #ffffff;
+    --gold: #e0a21b;
+    --code-bg: #16201a;
+    --code-text: #e8f1e3;
+    --correct: #23883a;
+    --correct-bg: #d9f2dd;
+    --wrong: #cc3b3b;
+    --wrong-bg: #fbe1e1;
+    --ghost: 0.1;
+    --sans: "Trebuchet MS", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1915;
+    --surface: #16241f;
+    --surface-2: #1f322b;
+    --text: #e7f1e9;
+    --muted: #9cb3a6;
+    --border: #2c443b;
+    --accent: #6cd47a;
+    --accent-text: #0e1915;
+    --gold: #f2c14e;
+    --code-bg: #08100d;
+    --correct: #5ee07a;
+    --correct-bg: #143923;
+    --wrong: #ff7b7b;
+    --wrong-bg: #3e1b1b;
+    --ghost: 0.13;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1915;
+      --surface: #16241f;
+      --surface-2: #1f322b;
+      --text: #e7f1e9;
+      --muted: #9cb3a6;
+      --border: #2c443b;
+      --accent: #6cd47a;
+      --accent-text: #0e1915;
+      --gold: #f2c14e;
+      --code-bg: #08100d;
+      --correct: #5ee07a;
+      --correct-bg: #143923;
+      --wrong: #ff7b7b;
+      --wrong-bg: #3e1b1b;
+      --ghost: 0.13;
+    }
+  }
+
+  /* Everything is sized in rem, and rem grows with the screen,
+     so the page looks the same on a laptop or a huge board. */
+  html { font-size: clamp(13px, 1.1vw, 52px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+  }
+  button { font-family: inherit; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .brand { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+  .brand .dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; background: var(--accent); }
+  .where { flex: 1; text-align: center; color: var(--muted); font-size: 1rem; }
+  .where strong { color: var(--text); }
+  .tools { display: flex; gap: 0.4rem; }
+  .tool {
+    min-width: 2.6rem; height: 2.6rem; padding: 0 0.8rem;
+    font-size: 1.05rem; font-weight: 700;
+    border-radius: 0.6rem; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); cursor: pointer;
+  }
+  .tool:hover { filter: brightness(1.06); }
+  .tool.next { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .tool.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+    50% { box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--accent) 0%, transparent); }
+  }
+
+  /* ---------- Question slide ---------- */
+  #app-stage { min-height: 0; }
+  .slide {
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.5fr);
+    gap: 1.5rem;
+    padding: 1.2rem 1.5rem;
+    min-height: 0;
+  }
+  .question {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    min-height: 0;
+    overflow: auto;
+  }
+  .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .chip {
+    font-size: 0.85rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 0.25rem 0.75rem; border-radius: 999px;
+    background: var(--surface-2); color: var(--muted);
+  }
+  .chip.part { background: var(--accent); color: var(--accent-text); }
+  .prompt { font-size: 2.1rem; line-height: 1.15; margin: 0; }
+
+  .work { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 0.9rem; }
+  .panel-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 0.3rem;
+  }
+  pre.code {
+    margin: 0;
+    padding: 1rem 1.2rem;
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 0.8rem;
+    font: 1.12rem/1.5 var(--mono);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code .kw { color: #d4a5ff; }
+  .code .str { color: #b8e986; }
+  .code .num { color: #ffab70; }
+  .code .com { color: #7f948a; font-style: italic; }
+  .code .tag { color: #7cc4ff; }
+  .code .blank {
+    display: inline-block; min-width: 3.5em; text-align: center;
+    border: 2px dashed var(--gold); border-radius: 0.35rem;
+    color: var(--gold); font-weight: 700; line-height: 1.2;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.45; } }
+  .code .filled {
+    background: color-mix(in srgb, var(--correct) 30%, transparent);
+    outline: 2px solid var(--correct); border-radius: 0.3rem; padding: 0 0.15em;
+    color: #ffffff; font-weight: 700;
+  }
+
+  .output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    padding: 0.8rem 1rem;
+    min-height: 6rem;
+    font: 1.1rem/1.45 var(--mono);
+    overflow: auto;
+  }
+  .output .waiting {
+    height: 100%; min-height: 4rem; display: grid; place-items: center; text-align: center;
+    color: var(--muted); font-family: var(--sans); font-size: 1rem;
+  }
+  .output .waiting b { display: block; font-size: 2.4rem; color: var(--border); }
+  .output .line { white-space: pre-wrap; word-break: break-word; padding: 0.1rem 0; border-bottom: 1px solid var(--surface-2); }
+  .output .line:last-child { border-bottom: 0; }
+  .output .line.err { color: var(--wrong); }
+  .output .line.pop { animation: slideIn 0.35s ease-out both; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(0.4rem); } }
+  .mini-console { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+
+  /* The live "page" box for DOM questions */
+  .page { font-family: var(--sans); font-size: 1.15rem; }
+  .page h2 { margin: 0.1rem 0 0.3rem; font-size: 1.5rem; }
+  .page ul { margin: 0.2rem 0; padding-left: 1.4rem; }
+  .page p { margin: 0.35rem 0; }
+  .page button, .page input {
+    font: inherit; padding: 0.35rem 0.8rem; border-radius: 0.5rem;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  }
+  .page button { cursor: pointer; font-weight: 700; }
+  .page form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .page .box { padding: 1rem; border: 2px solid var(--border); border-radius: 0.6rem; text-align: center; transition: all 0.3s; }
+  .page .glow { background: var(--gold); color: #1b1b1b; border-color: var(--gold); box-shadow: 0 0 1.2rem var(--gold); }
+  .page .caption { color: var(--muted); font-size: 0.85rem; }
+  .page img { width: 6rem; height: 6rem; display: block; }
+
+  /* ---------- Answer buttons ---------- */
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .answer {
+    display: flex; align-items: center; gap: 0.9rem;
+    min-height: 4.6rem; padding: 0.7rem 1rem;
+    text-align: left;
+    font: 600 1.3rem/1.3 var(--mono);
+    border-radius: 0.9rem;
+    border: 3px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s, border-color 0.2s, opacity 0.3s;
+  }
+  .answer:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .answer .key {
+    flex: none; display: grid; place-items: center;
+    width: 2.4rem; height: 2.4rem; border-radius: 0.6rem;
+    background: var(--surface-2); font: 800 1.2rem var(--sans); color: var(--muted);
+  }
+  .answer.correct { background: var(--correct-bg); border-color: var(--correct); }
+  .answer.correct .key { background: var(--correct); color: var(--surface); }
+  .answer.wrong { background: var(--wrong-bg); border-color: var(--wrong); animation: shake 0.4s; }
+  .answer.wrong .key { background: var(--wrong); color: var(--surface); }
+  .answer.dim { opacity: 0.4; }
+  .answers.done .answer { cursor: default; transform: none; }
+  @keyframes shake {
+    20%, 60% { transform: translateX(-0.5rem); }
+    40%, 80% { transform: translateX(0.5rem); }
+  }
+
+  .feedback {
+    min-height: 3.2rem;
+    font-size: 1.35rem; line-height: 1.35;
+    padding: 0.7rem 1rem; border-radius: 0.8rem;
+  }
+  .feedback:empty { visibility: hidden; }
+  .feedback.good { background: var(--correct-bg); border-left: 0.4rem solid var(--correct); }
+  .feedback.bad { background: var(--wrong-bg); border-left: 0.4rem solid var(--wrong); }
+  .feedback .star { color: var(--gold); font-weight: 800; white-space: nowrap; }
+  .feedback code, .prompt code { font-family: var(--mono); font-size: 0.92em; }
+
+  /* ---------- Frog panel ---------- */
+  .frog-panel {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.2rem;
+    padding: 1rem;
+    min-height: 0;
+  }
+  .frog-name { font-size: 1.6rem; font-weight: 800; margin: 0; }
+  .builds { color: var(--muted); font-size: 1rem; margin: 0.2rem 0 0; text-align: center; }
+  .builds strong { color: var(--accent); }
+  .frog-slot { flex: 1; min-height: 0; width: 100%; position: relative; }
+  #app-frog { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .progress { width: 100%; margin-top: 0.6rem; }
+  .bar { display: grid; grid-template-columns: repeat(21, 1fr); gap: 0.2rem; }
+  .bar span { height: 0.9rem; border-radius: 0.25rem; background: var(--surface-2); }
+  .bar span.part2 { background: color-mix(in srgb, var(--gold) 18%, var(--surface-2)); }
+  .bar span.on { background: var(--accent); }
+  .bar span.on.part2 { background: var(--gold); }
+  .bar span.here { outline: 2px solid var(--text); outline-offset: 1px; }
+  .count { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--muted); margin-top: 0.35rem; }
+  .count strong { color: var(--text); }
+
+  .toast {
+    position: absolute; top: 30%; left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent); color: var(--accent-text);
+    font-size: 1.6rem; font-weight: 800;
+    padding: 0.5rem 1.2rem; border-radius: 999px;
+    pointer-events: none;
+    animation: toast 1.8s ease-out forwards;
+  }
+  @keyframes toast {
+    0% { opacity: 0; transform: translate(-50%, 1rem) scale(0.8); }
+    15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+    70% { opacity: 1; transform: translate(-50%, -0.5rem) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -2rem) scale(1); }
+  }
+
+  /* Frog pieces: faint "blueprint" until built */
+  .piece { opacity: var(--ghost); filter: grayscale(1); transition: opacity 0.4s, filter 0.4s; }
+  .piece.built { opacity: 1; filter: none; }
+  .piece.just-built { animation: build 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both; transform-box: fill-box; transform-origin: center; }
+  @keyframes build {
+    0% { transform: scale(0.3) translateY(-30%); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* ---------- Title and finale ---------- */
+  .splash {
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem 4rem;
+  }
+  .splash h1 { font-size: 4.6rem; line-height: 1; margin: 0 0 1rem; }
+  .splash h1 span { color: var(--accent); }
+  .splash p { font-size: 1.5rem; line-height: 1.4; margin: 0.5rem 0; color: var(--muted); max-width: 32ch; }
+  .splash p strong { color: var(--text); }
+  .splash .frog-slot { height: calc(100vh - 9rem); }
+  .big-btn {
+    margin-top: 1.5rem; margin-right: 0.6rem;
+    font-size: 1.6rem; font-weight: 800;
+    padding: 0.9rem 2.2rem; border-radius: 1rem; border: 0;
+    background: var(--accent); color: var(--accent-text); cursor: pointer;
+  }
+  .big-btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .keys { margin-top: 2rem; font-size: 1rem; color: var(--muted); line-height: 1.8; }
+  kbd {
+    font: 700 0.9rem var(--mono); padding: 0.1rem 0.45rem;
+    border: 1px solid var(--border); border-bottom-width: 3px; border-radius: 0.35rem; background: var(--surface);
+    color: var(--text);
+  }
+  .missing { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+  .missing button { font-size: 1rem; padding: 0.3rem 0.7rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+
+  .confetti { position: fixed; width: 0.7rem; height: 0.9rem; border-radius: 0.15rem; pointer-events: none; z-index: 10; }
+
+  /* ---------- Smaller screens (laptop preview, phone) ---------- */
+  @media (max-width: 900px) {
+    html { font-size: 14px; }
+    body { overflow: auto; height: auto; }
+    .slide, .splash { grid-template-columns: 1fr; height: auto; padding: 1rem 16px; }
+    .work, .answers { grid-template-columns: 1fr; }
+    .frog-panel { height: 70vh; }
+    .splash .frog-slot { height: 55vh; }
+    .splash h1 { font-size: 3rem; }
+    .where { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>JavaScript Quest</div>
+  <div class="where" id="app-where"></div>
+  <div class="tools">
+    <button class="tool" id="app-prev" type="button" title="Back (←)">←</button>
+    <button class="tool next" id="app-next" type="button" title="Next (→)">Next →</button>
+    <button class="tool" id="app-theme" type="button" title="Light / dark (T)">🌓</button>
+    <button class="tool" id="app-full" type="button" title="Full screen (F)">⛶</button>
+    <button class="tool" id="app-reset" type="button" title="Start over">↺</button>
+  </div>
+</header>
+
+<main id="app-stage"></main>
+
+<!-- The frog knight. Each <g class="piece"> is built by one correct answer.
+     Pieces are drawn back-to-front here, but can be built in any order. -->
+<svg id="app-frog" viewBox="0 0 400 520" role="img" aria-label="Sir Hops-a-Lot, the frog knight">
+  <defs>
+    <linearGradient id="fk-metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f6f8"/>
+      <stop offset="1" stop-color="#9aa6b2"/>
+    </linearGradient>
+  </defs>
+
+  <g class="piece" data-piece="pond">
+    <ellipse cx="200" cy="466" rx="196" ry="46" fill="#4fb3e0"/>
+    <ellipse cx="200" cy="468" rx="166" ry="32" fill="none" stroke="#9ad8f2" stroke-width="3" opacity="0.7"/>
+    <path d="M30 472 Q24 410 34 346" stroke="#3e8e41" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <rect x="27" y="330" width="14" height="42" rx="7" fill="#8a5a2b"/>
+    <path d="M52 474 Q56 430 50 392" stroke="#3e8e41" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="44" y="378" width="12" height="32" rx="6" fill="#8a5a2b"/>
+    <path d="M370 472 Q376 410 366 346" stroke="#3e8e41" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <rect x="359" y="330" width="14" height="42" rx="7" fill="#8a5a2b"/>
+  </g>
+
+  <g class="piece" data-piece="lily">
+    <ellipse cx="200" cy="452" rx="154" ry="35" fill="#3a9a48"/>
+    <ellipse cx="200" cy="447" rx="142" ry="28" fill="#56b85f"/>
+    <path d="M200 448 L262 421 L294 427 Z" fill="#3a9a48"/>
+    <path d="M200 448 L80 442 M200 448 L132 470 M200 448 L268 470 M200 448 L330 444" stroke="#3a9a48" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g class="piece" data-piece="cape">
+    <path d="M148 272 Q200 258 252 272 L300 438 Q200 464 100 438 Z" fill="#c93c3c"/>
+    <path d="M176 282 L158 446 M224 282 L242 446" stroke="#a32d2d" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <g class="piece" data-piece="legs">
+    <ellipse cx="128" cy="414" rx="54" ry="32" fill="#5fb548"/>
+    <ellipse cx="272" cy="414" rx="54" ry="32" fill="#5fb548"/>
+    <ellipse cx="150" cy="448" rx="38" ry="11" fill="#4c9a38"/>
+    <ellipse cx="250" cy="448" rx="38" ry="11" fill="#4c9a38"/>
+  </g>
+
+  <g class="piece" data-piece="body">
+    <ellipse cx="200" cy="355" rx="88" ry="85" fill="#6cc04a"/>
+  </g>
+
+  <g class="piece" data-piece="belly">
+    <ellipse cx="200" cy="372" rx="58" ry="60" fill="#d4f0a8"/>
+  </g>
+
+  <g class="piece" data-piece="armour">
+    <path d="M146 300 Q200 284 254 300 L248 368 Q200 398 152 368 Z" fill="url(#fk-metal)" stroke="#7d8a97" stroke-width="3"/>
+    <path d="M200 292 L200 390" stroke="#7d8a97" stroke-width="3"/>
+    <circle cx="160" cy="308" r="3.5" fill="#7d8a97"/>
+    <circle cx="240" cy="308" r="3.5" fill="#7d8a97"/>
+  </g>
+
+  <g class="piece" data-piece="belt">
+    <rect x="122" y="386" width="156" height="18" rx="7" fill="#7a4a24"/>
+    <rect x="187" y="382" width="26" height="26" rx="4" fill="#f2c14e" stroke="#b8892a" stroke-width="2"/>
+    <rect x="194" y="389" width="12" height="12" fill="none" stroke="#b8892a" stroke-width="2"/>
+  </g>
+
+  <g class="piece" data-piece="head">
+    <ellipse cx="200" cy="232" rx="102" ry="62" fill="#6cc04a"/>
+  </g>
+
+  <g class="piece" data-piece="plume">
+    <path d="M203 122 Q214 64 272 72 Q244 88 232 132 Z" fill="#e63946"/>
+    <path d="M212 112 Q234 84 260 78" stroke="#b52a35" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <g class="piece" data-piece="helmet">
+    <path d="M170 186 Q170 122 200 116 Q230 122 230 186 Z" fill="url(#fk-metal)" stroke="#7d8a97" stroke-width="3"/>
+    <rect x="164" y="176" width="72" height="14" rx="6" fill="#a7b2bd" stroke="#7d8a97" stroke-width="2"/>
+    <circle cx="200" cy="117" r="6" fill="#f2c14e"/>
+  </g>
+
+  <g class="piece" data-piece="eyes">
+    <circle cx="146" cy="182" r="34" fill="#6cc04a"/>
+    <circle cx="254" cy="182" r="34" fill="#6cc04a"/>
+    <circle cx="146" cy="182" r="25" fill="#ffffff"/>
+    <circle cx="254" cy="182" r="25" fill="#ffffff"/>
+  </g>
+
+  <g class="piece" data-piece="pupils">
+    <circle cx="152" cy="186" r="12" fill="#1b1b1b"/>
+    <circle cx="260" cy="186" r="12" fill="#1b1b1b"/>
+    <circle cx="157" cy="180" r="4" fill="#ffffff"/>
+    <circle cx="265" cy="180" r="4" fill="#ffffff"/>
+  </g>
+
+  <g class="piece" data-piece="spots">
+    <circle cx="178" cy="212" r="6" fill="#4f9a37"/>
+    <circle cx="222" cy="208" r="5" fill="#4f9a37"/>
+    <circle cx="201" cy="224" r="4" fill="#4f9a37"/>
+    <circle cx="100" cy="404" r="8" fill="#4f9a37"/>
+    <circle cx="116" cy="426" r="5" fill="#4f9a37"/>
+    <circle cx="300" cy="404" r="8" fill="#4f9a37"/>
+    <circle cx="284" cy="426" r="5" fill="#4f9a37"/>
+  </g>
+
+  <g class="piece" data-piece="cheeks">
+    <ellipse cx="122" cy="252" rx="17" ry="10" fill="#ff8fa3" opacity="0.8"/>
+    <ellipse cx="278" cy="252" rx="17" ry="10" fill="#ff8fa3" opacity="0.8"/>
+  </g>
+
+  <g class="piece" data-piece="smile">
+    <path d="M142 248 Q200 292 258 248" stroke="#2f6b22" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <g class="piece" data-piece="pauldrons">
+    <ellipse cx="126" cy="300" rx="32" ry="21" fill="url(#fk-metal)" stroke="#7d8a97" stroke-width="3"/>
+    <ellipse cx="274" cy="300" rx="32" ry="21" fill="url(#fk-metal)" stroke="#7d8a97" stroke-width="3"/>
+    <path d="M100 302 Q126 290 152 302 M248 302 Q274 290 300 302" stroke="#7d8a97" stroke-width="2.5" fill="none"/>
+  </g>
+
+  <g class="piece" data-piece="arms">
+    <path d="M128 312 Q102 340 104 372" stroke="#5fb548" stroke-width="26" fill="none" stroke-linecap="round"/>
+    <path d="M272 312 Q304 326 316 350" stroke="#5fb548" stroke-width="26" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <g class="piece" data-piece="shield">
+    <path d="M48 320 L136 320 L136 368 Q136 418 92 442 Q48 418 48 368 Z" fill="#3b6fd8" stroke="#d3dae1" stroke-width="7" stroke-linejoin="round"/>
+    <ellipse cx="81" cy="364" rx="13" ry="7" fill="#ffffff" opacity="0.9" transform="rotate(-25 81 364)"/>
+    <ellipse cx="103" cy="364" rx="13" ry="7" fill="#ffffff" opacity="0.9" transform="rotate(25 103 364)"/>
+    <ellipse cx="92" cy="376" rx="7" ry="12" fill="#f2c14e"/>
+    <circle cx="92" cy="361" r="5.5" fill="#f2c14e"/>
+  </g>
+
+  <g class="piece" data-piece="sword">
+    <polygon points="310,338 310,162 318,138 326,162 326,338" fill="#e9eef3" stroke="#8b96a3" stroke-width="2"/>
+    <line x1="318" y1="160" x2="318" y2="330" stroke="#b9c3cc" stroke-width="2"/>
+    <rect x="290" y="332" width="56" height="10" rx="5" fill="#f2c14e"/>
+    <rect x="312" y="342" width="12" height="28" rx="3" fill="#7a4a24"/>
+    <circle cx="318" cy="375" r="7" fill="#f2c14e"/>
+  </g>
+
+  <!-- the sword hand sits on top of the sword's grip -->
+  <g class="piece" data-piece="arms">
+    <circle cx="317" cy="352" r="15" fill="#5fb548"/>
+  </g>
+
+  <g class="piece" data-piece="banner">
+    <path d="M76 488 L100 480 L100 512 L76 506 L86 497 Z" fill="#d8b878"/>
+    <path d="M324 488 L300 480 L300 512 L324 506 L314 497 Z" fill="#d8b878"/>
+    <rect x="96" y="474" width="208" height="38" rx="6" fill="#f4e1b0" stroke="#c9a55f" stroke-width="2"/>
+    <text x="200" y="500" text-anchor="middle" font-family="Trebuchet MS, sans-serif" font-weight="800" font-size="19" letter-spacing="1.5" fill="#6b4a1b">SIR HOPS-A-LOT</text>
+    <path transform="translate(58 108)" d="M0 -14 Q3 -3 14 0 Q3 3 0 14 Q-3 3 -14 0 Q-3 -3 0 -14Z" fill="#f2c14e"/>
+    <path transform="translate(352 58) scale(0.8)" d="M0 -14 Q3 -3 14 0 Q3 3 0 14 Q-3 3 -14 0 Q-3 -3 0 -14Z" fill="#f2c14e"/>
+    <path transform="translate(372 268) scale(0.7)" d="M0 -14 Q3 -3 14 0 Q3 3 0 14 Q-3 3 -14 0 Q-3 -3 0 -14Z" fill="#f2c14e"/>
+    <path transform="translate(36 262) scale(0.6)" d="M0 -14 Q3 -3 14 0 Q3 3 0 14 Q-3 3 -14 0 Q-3 -3 0 -14Z" fill="#f2c14e"/>
+  </g>
+</svg>
+
+<script>
+// ================================================================
+// Little picture helper for the "Attributes" question:
+// turns an emoji into an image file the <img> can show
+// ================================================================
+const emojiPic = (emoji) =>
+  "data:image/svg+xml," +
+  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50" y="80" font-size="80" text-anchor="middle">${emoji}</text></svg>`);
+const EGG_PIC = emojiPic("🥚");
+const FROG_PIC = emojiPic("🐸");
+
+// ================================================================
+// The questions
+// ----------------------------------------------------------------
+// code:    the code shown on screen. ___ marks a blank to fill in.
+// options: the answer buttons. The correct one fills the blank.
+// page:    (DOM questions) HTML for the live "page" box.
+// before / after: hidden extra code that runs around the shown code.
+// piece:   which part of the frog knight a correct answer builds.
+// ================================================================
+const QUESTIONS = [
+  // ---------------- PART 1: FUNDAMENTALS ----------------
+  {
+    topic: "console.log", piece: "pond", pieceName: "Pond",
+    prompt: "What shows up in the console?",
+    code: `console.log("Hello");
+// console.log("Goodbye");
+console.log("Class");`,
+    options: [
+      { label: "Hello<br>Goodbye<br>Class", why: "Look at line 2. What do the <code>//</code> do?" },
+      { label: "Hello<br>Class", correct: true },
+      { label: "An error", why: "Comments never cause errors. JavaScript just skips them." },
+      { label: "Class", why: "Line 1 isn't a comment, so Hello still prints." },
+    ],
+    explain: "<code>//</code> turns a line into a comment, so JavaScript skips it.",
+  },
+  {
+    topic: "Variables", piece: "lily", pieceName: "Lily pad",
+    prompt: "Which word fills the blank?",
+    code: `___ score = 0;
+score = score + 10;
+console.log(score);`,
+    options: [
+      { label: "const", why: "<code>const</code> can't be changed, so line 2 would cause an error." },
+      { label: "variable", why: "<code>variable</code> isn't a JavaScript keyword." },
+      { label: "let", correct: true },
+      { label: "int", why: "<code>int</code> is from languages like Java and C. JavaScript doesn't have it." },
+    ],
+    explain: "<code>let</code> is for values that change. Use <code>const</code> for values that don't.",
+  },
+  {
+    topic: "Data types", piece: "body", pieceName: "Body",
+    prompt: "What does this print?",
+    code: `const age = "20";
+console.log(typeof age);`,
+    options: [
+      { label: "number", why: "Look closely at the quote marks around 20." },
+      { label: "string", correct: true },
+      { label: "age", why: "<code>typeof</code> gives the type, not the variable's name." },
+      { label: "undefined", why: "<code>age</code> has a value, so it isn't undefined." },
+    ],
+    explain: "The quotes make <code>\"20\"</code> a string, even though it looks like a number.",
+  },
+  {
+    topic: "Strings", piece: "legs", pieceName: "Legs",
+    prompt: "What does this print?",
+    code: "const name = \"Ada\";\nconsole.log(`Hi, ${name}!`);",
+    options: [
+      { label: "Hi, ${name}!", why: "That's what normal quotes would give. Backticks fill in the value." },
+      { label: "Hi, name!", why: "<code>${ }</code> swaps in the <em>value</em> of name, not the word." },
+      { label: "An error", why: "This is valid. Backticks make a template literal." },
+      { label: "Hi, Ada!", correct: true },
+    ],
+    explain: "Backticks plus <code>${ }</code> make a template literal. The value of <code>name</code> goes straight in.",
+  },
+  {
+    topic: "Numbers", piece: "belly", pieceName: "Belly",
+    prompt: "What does this print?",
+    code: `const a = "5";
+const b = 5;
+console.log(a + b);`,
+    options: [
+      { label: "10", why: "That's what you'd get if both were numbers. Look at the quotes." },
+      { label: "55", correct: true },
+      { label: "NaN", why: "NaN means \"not a number\". Here <code>+</code> joins the text instead." },
+      { label: "An error", why: "JavaScript happily mixes them. That's what makes this one sneaky!" },
+    ],
+    explain: "<code>+</code> with a string joins text. <code>Number(a) + b</code> would give 10. Watch for this with form inputs, which are always strings.",
+  },
+  {
+    topic: "Comparison", piece: "head", pieceName: "Head",
+    prompt: "What does this print?",
+    code: `console.log(5 === "5");`,
+    options: [
+      { label: "true", why: "That's what <code>==</code> (two equals signs) would say. <code>===</code> also checks the type." },
+      { label: "false", correct: true },
+      { label: "5", why: "Comparisons always give back <code>true</code> or <code>false</code>." },
+      { label: "An error", why: "Comparing different types is allowed. They just aren't equal." },
+    ],
+    explain: "<code>===</code> checks the value <em>and</em> the type. A number is never <code>===</code> a string.",
+  },
+  {
+    topic: "if / else", piece: "eyes", pieceName: "Eyes",
+    prompt: "What does this print?",
+    code: `const grade = 75;
+
+if (grade >= 80) {
+  console.log("A");
+} else if (grade >= 70) {
+  console.log("B");
+} else {
+  console.log("C");
+}`,
+    options: [
+      { label: "A", why: "75 >= 80 is false, so the first block is skipped." },
+      { label: "B", correct: true },
+      { label: "C", why: "<code>else</code> only runs if nothing above it was true." },
+      { label: "B<br>C", why: "Only ONE block in an if / else if / else chain runs." },
+    ],
+    explain: "JavaScript runs only the <em>first</em> block that's true. 75 isn't >= 80, but it is >= 70.",
+  },
+  {
+    topic: "Loops", piece: "pupils", pieceName: "Pupils",
+    prompt: "How many times does <code>Hop!</code> print?",
+    code: `for (let i = 0; i < 3; i++) {
+  console.log("Hop!");
+}`,
+    options: [
+      { label: "2", why: "Count them: i = 0, 1, 2. That's three." },
+      { label: "3", correct: true },
+      { label: "4", why: "<code>i < 3</code> stops before i reaches 3. (<code>i <= 3</code> would give 4.)" },
+      { label: "Forever", why: "<code>i++</code> adds 1 each time, so i eventually reaches 3." },
+    ],
+    explain: "i is 0, then 1, then 2. When i reaches 3, <code>i < 3</code> is false and the loop stops.",
+  },
+  {
+    topic: "Functions", piece: "smile", pieceName: "Smile",
+    prompt: "What does this print?",
+    code: `function double(n) {
+  n * 2;
+}
+
+console.log(double(4));`,
+    options: [
+      { label: "8", why: "It does the maths, but never sends the answer back." },
+      { label: "4", why: "<code>n * 2</code> doesn't change n, and nothing is sent back." },
+      { label: "undefined", correct: true },
+      { label: "An error", why: "It's valid code. It just doesn't return anything." },
+    ],
+    explain: "There's no <code>return</code>, so the function gives back <code>undefined</code>. Fix: <code>return n * 2;</code>",
+  },
+  {
+    topic: "Arrays", piece: "cheeks", pieceName: "Rosy cheeks",
+    prompt: "What does this print?",
+    code: `const snacks = ["flies", "worms", "beetles"];
+console.log(snacks[1]);`,
+    options: [
+      { label: "flies", why: "That's <code>[0]</code>. Arrays start counting at 0." },
+      { label: "worms", correct: true },
+      { label: "beetles", why: "That's <code>[2]</code>, the third item." },
+      { label: "undefined", why: "There IS an item at position 1." },
+    ],
+    explain: "Arrays count from 0, so <code>[1]</code> is the <em>second</em> item.",
+  },
+  {
+    topic: "Array methods", piece: "arms", pieceName: "Arms",
+    prompt: "What does this print?",
+    code: `const jumps = [2, 8, 5, 10];
+const big = jumps.filter((j) => j > 4);
+console.log(big);`,
+    options: [
+      { label: "[2]", why: "That's the item that <em>fails</em> the test." },
+      { label: "8", why: "<code>find</code> would give the first match. <code>filter</code> gives every match, in an array." },
+      { label: "[false, true, true, true]", why: "That's what <code>map</code> would make. <code>filter</code> keeps the actual items." },
+      { label: "[8, 5, 10]", correct: true },
+    ],
+    explain: "<code>filter</code> makes a new array with only the items that pass the test.",
+  },
+  {
+    topic: "Objects", piece: "spots", pieceName: "Spots",
+    prompt: "What fills the blank to print <code>Ribbit</code>?",
+    code: `const frog = { name: "Ribbit", lives: 9 };
+console.log(___);`,
+    options: [
+      { label: "frog.name", correct: true },
+      { label: "frog[name]", why: "Without quotes, JavaScript looks for a variable called name. It would need <code>frog[\"name\"]</code>." },
+      { label: "name", why: "There's no variable called name. It lives <em>inside</em> frog." },
+      { label: "frog.Name", why: "Capital N! Keys are case-sensitive, so this gives <code>undefined</code>." },
+    ],
+    explain: "Dot notation reads a value from an object: <code>object.key</code>.",
+  },
+
+  // ---------------- PART 2: THE DOM ----------------
+  {
+    topic: "Linking your script", piece: "cape", pieceName: "Cape",
+    prompt: "Which attribute makes the script wait until the page has loaded?",
+    lang: "html",
+    run: false,
+    code: `<head>
+  <title>My page</title>
+  <script src="script.js" ___><\/script>
+</head>`,
+    options: [
+      { label: "wait", why: "Not a real attribute. The browser just ignores it." },
+      { label: "async", why: "Close! <code>async</code> runs as soon as the file downloads, which might be before the HTML is ready." },
+      { label: "defer", correct: true },
+      { label: "later", why: "Not a real attribute. The browser just ignores it." },
+    ],
+    explain: "<code>defer</code> waits for the HTML to load, so <code>querySelector</code> can find your elements. Without it you get <code>null</code> errors.",
+  },
+  {
+    topic: "Selecting elements", piece: "armour", pieceName: "Breastplate",
+    prompt: "What does this print?",
+    page: `<ul>
+  <li class="item">Milk</li>
+  <li class="item">Bread</li>
+  <li class="item">Eggs</li>
+</ul>`,
+    code: `const item = document.querySelector(".item");
+console.log(item.textContent);`,
+    options: [
+      { label: "Milk", correct: true },
+      { label: "Milk Bread Eggs", why: "That's all three. <code>querySelector</code> stops at the first match." },
+      { label: "Eggs", why: "That's the last one. <code>querySelector</code> finds the first." },
+      { label: "null", why: "There IS an element with class item, so it isn't <code>null</code>." },
+    ],
+    explain: "<code>querySelector</code> gives you the <em>first</em> match. <code>querySelectorAll</code> gets them all.",
+  },
+  {
+    topic: "Changing content", piece: "belt", pieceName: "Belt",
+    prompt: "What appears on the page?",
+    page: `<h2 id="title">Hello</h2>`,
+    code: `const title = document.querySelector("#title");
+title.textContent = "<b>Hi</b> frog";`,
+    options: [
+      { label: "<span style=\"font-family:var(--sans)\"><b>Hi</b> frog</span> <small style=\"font-family:var(--sans)\">(Hi in bold)</small>", why: "That's what <code>innerHTML</code> would do." },
+      { label: "Hello", why: "The line replaces the text, so Hello is gone." },
+      { label: "&lt;b&gt;Hi&lt;/b&gt; frog", correct: true },
+      { label: "An error", why: "Valid code. <code>textContent</code> accepts any text." },
+    ],
+    explain: "<code>textContent</code> shows text exactly as written, tags and all. <code>innerHTML</code> would make Hi bold.",
+  },
+  {
+    topic: "Classes", piece: "pauldrons", pieceName: "Shoulder armour",
+    prompt: "Which method fills the blank?",
+    page: `<div id="card" class="box">Frog card</div>
+<p class="caption">We want the glow class added if it's missing, removed if it's there.</p>`,
+    code: `const card = document.querySelector("#card");
+card.classList.___("glow");`,
+    options: [
+      { label: "add", why: "<code>add</code> only adds. It never removes." },
+      { label: "switch", why: "Not a classList method. The real ones are add, remove, toggle and contains." },
+      { label: "flip", why: "Not a classList method." },
+      { label: "toggle", correct: true },
+    ],
+    explain: "<code>toggle</code> adds the class if it's missing and removes it if it's there. Great for on/off buttons.",
+  },
+  {
+    topic: "Attributes", piece: "helmet", pieceName: "Helmet",
+    prompt: "Which property changes the picture?",
+    page: `<img id="pic" src="${EGG_PIC}" alt="An egg">`,
+    code: `const pic = document.querySelector("#pic");
+pic.___ = "frog.png";`,
+    runCode: `const pic = document.querySelector("#pic");
+pic.___ = FROG_PIC;`,
+    options: [
+      { label: "href", why: "<code>href</code> is for links (<code>&lt;a&gt;</code>). Images use src." },
+      { label: "src", correct: true },
+      { label: "image", why: "Not a property of <code>&lt;img&gt;</code>." },
+      { label: "alt", why: "<code>alt</code> is the description for screen readers. It doesn't change the picture." },
+    ],
+    explain: "<code>src</code> sets which file an <code>&lt;img&gt;</code> shows. The egg hatched!",
+  },
+  {
+    topic: "Creating elements", piece: "plume", pieceName: "Plume",
+    prompt: "Which line adds the new item to the page?",
+    page: `<ul id="list">
+  <li>Flies</li>
+</ul>`,
+    code: `const list = document.querySelector("#list");
+const li = document.createElement("li");
+li.textContent = "Worms";
+___`,
+    options: [
+      { label: "li.append(list);", why: "Backwards! That puts the whole list <em>inside</em> the new li." },
+      { label: "list.append(li);", correct: true },
+      { label: "document.append(li);", why: "The document can only hold the <code>&lt;html&gt;</code> element. Add it to the list instead." },
+      { label: "list.textContent = li;", why: "That replaces the list with the text <code>[object HTMLLIElement]</code>." },
+    ],
+    explain: "Create it, fill it in, then add it: <code>list.append(li)</code> puts the new item inside the list.",
+  },
+  {
+    topic: "Events", piece: "shield", pieceName: "Shield",
+    prompt: "What goes in the blank so the button counts clicks?",
+    page: `<p><button id="btn" type="button">Ribbit!</button></p>
+<p id="out">Clicks: 0</p>`,
+    code: `const btn = document.querySelector("#btn");
+const out = document.querySelector("#out");
+let clicks = 0;
+
+function countClick() {
+  clicks++;
+  out.textContent = \`Clicks: \${clicks}\`;
+}
+
+btn.addEventListener("click", ___);`,
+    options: [
+      { label: "countClick()", why: "The <code>( )</code> run the function once, straight away, and pass in its result instead." },
+      { label: "\"countClick\"", why: "That's just text, not the function itself." },
+      { label: "countClick", correct: true },
+      { label: "click", why: "There's no function called click. We want countClick." },
+    ],
+    explain: "Pass the function's name <em>without</em> <code>( )</code>, and the browser calls it on every click. Try the button!",
+  },
+  {
+    topic: "Forms", piece: "sword", pieceName: "Sword",
+    prompt: "Which line stops the page reloading when the form is sent?",
+    page: `<form id="form">
+  <input id="name" type="text" placeholder="Your name">
+  <button type="submit">Send</button>
+</form>
+<p id="msg"></p>`,
+    code: `const form = document.querySelector("#form");
+const input = document.querySelector("#name");
+const msg = document.querySelector("#msg");
+
+form.addEventListener("submit", (event) => {
+  ___;
+  msg.textContent = \`Hi, \${input.value}!\`;
+});`,
+    options: [
+      { label: "event.preventDefault()", correct: true },
+      { label: "event.stop()", why: "Not a real method. Close, though!" },
+      { label: "return false", why: "That works in old <code>onsubmit=\"\"</code> attributes, but not with addEventListener." },
+      { label: "form.reload = false", why: "Not a real property. The browser ignores it." },
+    ],
+    explain: "Forms reload the page when they're sent. <code>event.preventDefault()</code> stops that. Type a name and try it!",
+  },
+  {
+    topic: "All together", piece: "banner", pieceName: "Name banner",
+    prompt: "What should <code>render()</code> do first, so tasks don't show up twice?",
+    page: `<p><button id="add" type="button">+ Add task</button></p>
+<ul id="list">
+  <li>Review JS</li><li>Build a frog</li>
+  <li>Review JS</li><li>Build a frog</li>
+</ul>
+<p class="caption">The bug: every task appears twice.</p>`,
+    code: `function render() {
+  ___
+  tasks.forEach((task) => {
+    const li = document.createElement("li");
+    li.textContent = task;
+    list.append(li);
+  });
+}`,
+    before: `const list = document.querySelector("#list");
+const tasks = ["Review JS", "Build a frog"];`,
+    after: `render();
+document.querySelector(".caption").textContent = "Fixed! Now try + Add task.";
+document.querySelector("#add").addEventListener("click", () => {
+  tasks.push("New task " + (tasks.length + 1));
+  render();
+});`,
+    options: [
+      { label: "tasks = [];", why: "That deletes your data! The list would be empty." },
+      { label: "list.remove();", why: "That removes the whole list from the page." },
+      { label: "render();", why: "render calling itself would loop forever." },
+      { label: "list.innerHTML = \"\";", correct: true },
+    ],
+    explain: "Clearing the list first means every render starts fresh from the data. Try <strong>+ Add task</strong>!",
+  },
+];
+
+const PART_1_COUNT = 12;   // questions 1–12 build the frog, 13–21 make him a knight
+const TOTAL = QUESTIONS.length;
+
+// ================================================================
+// State: which questions are answered (saved so a page refresh
+// doesn't lose the class's progress)
+// ================================================================
+const SAVE_KEY = "js-quest-frog-v1";
+let answered = {};        // { questionIndex: { firstTry: true/false } }
+let wrongTries = {};      // wrong answers tried on each question (not saved)
+let slide = 0;            // 0 = title, 1–21 = questions, 22 = finale
+
+function load() {
+  try { answered = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch { answered = {}; }
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(answered)); } catch { /* storage blocked: just don't save */ }
+}
+
+// ================================================================
+// Drawing slides
+// ================================================================
+const stageEl = document.querySelector("#app-stage");
+const frogSvg = document.querySelector("#app-frog");
+const whereEl = document.querySelector("#app-where");
+const nextBtn = document.querySelector("#app-next");
+
+function builtCount() { return Object.keys(answered).length; }
+function firstTryCount() { return Object.values(answered).filter((a) => a.firstTry).length; }
+
+function render() {
+  nextBtn.classList.remove("pulse");
+  if (slide === 0) renderTitle();
+  else if (slide > TOTAL) renderFinale();
+  else renderQuestion(slide - 1);
+  stageEl.scrollTop = 0;
+}
+
+function renderTitle() {
+  whereEl.innerHTML = "";
+  nextBtn.textContent = "Start →";
+  stageEl.innerHTML = `
+    <section class="splash">
+      <div>
+        <h1>JavaScript<br><span>Quest</span></h1>
+        <p>Every right answer builds a piece of <strong>Sir Hops-a-Lot</strong>, the frog knight.</p>
+        <p><strong>Part 1</strong> builds the frog. <strong>Part 2</strong> (the DOM) arms him for battle.</p>
+        <button class="big-btn" type="button" data-go="1">${builtCount() ? "Continue" : "Start the quest"}</button>
+        <div class="keys">
+          <kbd>1</kbd>–<kbd>4</kbd> or <kbd>A</kbd>–<kbd>D</kbd> pick an answer &nbsp;·&nbsp;
+          <kbd>→</kbd> next &nbsp;·&nbsp; <kbd>←</kbd> back<br>
+          <kbd>F</kbd> full screen &nbsp;·&nbsp; <kbd>T</kbd> light / dark &nbsp;·&nbsp; <kbd>Esc</kbd> leave a text box
+        </div>
+      </div>
+      <div class="frog-slot"></div>
+    </section>`;
+  stageEl.querySelector(".frog-slot").append(frogSvg);
+}
+
+function renderFinale() {
+  whereEl.innerHTML = "<strong>Quest complete</strong>";
+  nextBtn.textContent = "Next →";
+  const built = builtCount();
+  const done = built === TOTAL;
+  const missing = QUESTIONS.map((q, i) => i).filter((i) => !answered[i]);
+  stageEl.innerHTML = `
+    <section class="splash">
+      <div>
+        <h1>${done ? "Sir Hops-a-Lot<br><span>is ready!</span>" : "Almost<br><span>there…</span>"}</h1>
+        <p>${done
+          ? "You built the whole frog knight. He's ready to fight bugs (the code kind)."
+          : `${built} of ${TOTAL} pieces built. These questions still need answering:`}</p>
+        ${done ? "" : `<div class="missing">${missing.map((i) => `<button type="button" data-go="${i + 1}">${i + 1}. ${QUESTIONS[i].topic}</button>`).join("")}</div>`}
+        <p>⭐ <strong>${firstTryCount()} of ${built}</strong> answered on the first try.</p>
+        <button class="big-btn" type="button" data-go="1">Review</button>
+        <button class="big-btn secondary" type="button" data-reset>Start over</button>
+      </div>
+      <div class="frog-slot"></div>
+    </section>`;
+  stageEl.querySelector(".frog-slot").append(frogSvg);
+  if (done) setTimeout(() => confetti(innerWidth * 0.7, innerHeight * 0.4, 140), 300);
+}
+
+function renderQuestion(index) {
+  const q = QUESTIONS[index];
+  const part = index < PART_1_COUNT ? "Part 1 · Fundamentals" : "Part 2 · The DOM";
+  whereEl.innerHTML = `${part} &nbsp;·&nbsp; <strong>Question ${index + 1} of ${TOTAL}</strong>`;
+  nextBtn.textContent = index === TOTAL - 1 ? "Finish →" : "Next →";
+
+  stageEl.innerHTML = `
+    <section class="slide">
+      <div class="question">
+        <div class="chips">
+          <span class="chip part">${index < PART_1_COUNT ? "Part 1" : "Part 2"}</span>
+          <span class="chip">${q.topic}</span>
+        </div>
+        <h2 class="prompt">${q.prompt}</h2>
+        <div class="work">
+          <div>
+            <p class="panel-label">${q.lang === "html" ? "HTML" : "JavaScript"}</p>
+            <pre class="code">${highlight(q.code, q.lang)}</pre>
+          </div>
+          <div>
+            <p class="panel-label">${q.page ? "The page" : q.run === false ? "" : "Console"}</p>
+            <div class="output">
+              ${q.page
+                ? `<div class="page" id="app-page">${q.page}</div><div class="mini-console" hidden></div>`
+                : q.run === false
+                  ? `<div class="waiting"><span><b>&lt;/&gt;</b>No output: this one's about HTML</span></div>`
+                  : `<div class="waiting"><span><b>?</b>Output appears after the right answer</span></div>`}
+            </div>
+          </div>
+        </div>
+        <div class="answers">
+          ${q.options.map((o, i) => `
+            <button class="answer" type="button" data-answer="${i}">
+              <span class="key">${"ABCD"[i]}</span><span>${o.label}</span>
+            </button>`).join("")}
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <aside class="frog-panel">
+        <h2 class="frog-name">Sir Hops-a-Lot</h2>
+        <p class="builds">${answered[index] ? "Built:" : "This answer builds:"} <strong>${q.pieceName}</strong></p>
+        <div class="frog-slot"></div>
+        <div class="progress">
+          <div class="bar">${QUESTIONS.map((_, i) =>
+            `<span class="${i >= PART_1_COUNT ? "part2" : ""} ${answered[i] ? "on" : ""} ${i === index ? "here" : ""}"></span>`).join("")}</div>
+          <div class="count"><span><strong class="built-count">${builtCount()}</strong> / ${TOTAL} pieces</span><span>⭐ <strong class="star-count">${firstTryCount()}</strong> first try</span></div>
+        </div>
+      </aside>
+    </section>`;
+  stageEl.querySelector(".frog-slot").append(frogSvg);
+
+  // Coming back to an answered question: show it already solved
+  if (answered[index]) showCorrect(index, false);
+}
+
+// ================================================================
+// Answering
+// ================================================================
+function choose(optionIndex) {
+  if (slide < 1 || slide > TOTAL) return;
+  const index = slide - 1;
+  if (answered[index] && document.querySelector(".answers.done")) return;
+  const q = QUESTIONS[index];
+  const option = q.options[optionIndex];
+  if (!option) return;
+  const button = document.querySelector(`[data-answer="${optionIndex}"]`);
+
+  if (option.correct) {
+    const firstTry = !wrongTries[index];
+    const isNew = !answered[index];
+    if (isNew) {
+      answered[index] = { firstTry };
+      save();
+    }
+    showCorrect(index, isNew);
+  } else {
+    wrongTries[index] = (wrongTries[index] || 0) + 1;
+    button.classList.remove("wrong");
+    void button.offsetWidth;   // restart the shake animation
+    button.classList.add("wrong");
+    const fb = document.querySelector(".feedback");
+    fb.className = "feedback bad";
+    fb.innerHTML = `<strong>Not quite.</strong> ${option.why || "Try another one!"}`;
+  }
+}
+
+function showCorrect(index, isNew) {
+  const q = QUESTIONS[index];
+  const correctIndex = q.options.findIndex((o) => o.correct);
+  const correct = q.options[correctIndex];
+
+  document.querySelector(".answers").classList.add("done");
+  document.querySelectorAll(".answer").forEach((b, i) => {
+    b.classList.remove("wrong");
+    b.classList.toggle("correct", i === correctIndex);
+    b.classList.toggle("dim", i !== correctIndex);
+  });
+
+  // Fill in the blank in the code
+  document.querySelector("pre.code").innerHTML = highlight(q.code, q.lang, plain(correct.label));
+
+  const fb = document.querySelector(".feedback");
+  fb.className = "feedback good";
+  const star = answered[index].firstTry ? ` <span class="star">⭐ First try!</span>` : "";
+  fb.innerHTML = `<strong>Yes!</strong> ${q.explain}${star}`;
+
+  runQuestion(q, plain(correct.label), isNew);
+
+  // Build the piece
+  document.querySelector(".builds").innerHTML = `Built: <strong>${q.pieceName}</strong>`;
+  document.querySelectorAll(".bar span")[index].classList.add("on");
+  document.querySelector(".built-count").textContent = builtCount();
+  document.querySelector(".star-count").textContent = firstTryCount();
+  if (isNew) {
+    buildPiece(q.piece, true);
+    const panel = document.querySelector(".frog-panel");
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = `+ ${q.pieceName}!`;
+    panel.append(toast);
+    setTimeout(() => toast.remove(), 1900);
+    const r = panel.getBoundingClientRect();
+    confetti(r.left + r.width / 2, r.top + r.height * 0.45, 40);
+    nextBtn.classList.add("pulse");
+  }
+}
+
+function buildPiece(id, animate) {
+  document.querySelectorAll(`[data-piece="${id}"]`).forEach((g) => {
+    g.classList.add("built");
+    if (animate) {
+      g.classList.add("just-built");
+      setTimeout(() => g.classList.remove("just-built"), 800);
+    }
+  });
+}
+
+// Turn a button label like "Hello<br>Class" or "&lt;b&gt;" into plain text
+function plain(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html.replace(/<br>/g, "\n");
+  return div.textContent;
+}
+
+// ================================================================
+// Running the real code once the right answer is chosen
+// ================================================================
+function runQuestion(q, answerText, animate) {
+  if (q.run === false) return;
+  const output = document.querySelector(".output");
+  const logTo = q.page ? output.querySelector(".mini-console") : output;
+  if (!q.page) output.innerHTML = "";
+
+  const lines = [];
+  const show = (text, isError) => {
+    lines.push(text);
+    if (q.page) logTo.hidden = false;
+    const line = document.createElement("div");
+    line.className = "line" + (isError ? " err" : "") + (animate ? " pop" : "");
+    line.style.animationDelay = `${(lines.length - 1) * 0.12}s`;
+    line.textContent = text;
+    logTo.append(line);
+  };
+  const fakeConsole = {
+    log: (...values) => show(values.map((v) => format(v, 0, true)).join(" ")),
+  };
+
+  const body = [q.before || "", (q.runCode || q.code).replace("___", answerText), q.after || ""].join("\n");
+  try {
+    new Function("console", "FROG_PIC", body)(fakeConsole, FROG_PIC);
+  } catch (error) {
+    show(`${error.name}: ${error.message}`, true);
+  }
+}
+
+// Show values the way the browser console does
+function format(value, depth, topLevel) {
+  if (typeof value === "string") return topLevel ? value : JSON.stringify(value);
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "function") return `ƒ ${value.name || "anonymous"}()`;
+  if (typeof value !== "object") return String(value);
+  if (value instanceof Element) return value.outerHTML;
+  if (depth > 2) return Array.isArray(value) ? "[…]" : "{…}";
+  if (Array.isArray(value)) return `[${value.map((v) => format(v, depth + 1)).join(", ")}]`;
+  return `{ ${Object.entries(value).map(([k, v]) => `${k}: ${format(v, depth + 1)}`).join(", ")} }`;
+}
+
+// ================================================================
+// A tiny syntax highlighter for the code boxes
+// ================================================================
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function highlight(code, lang, fill) {
+  const blank = fill === undefined
+    ? `<span class="blank">?</span>`
+    : `<span class="filled">${escapeHtml(fill)}</span>`;
+
+  if (lang === "html") {
+    return escapeHtml(code)
+      .replace(/"[^"]*"/g, (m) => `<span class="str">${m}</span>`)
+      .replace(/(&lt;\/?)([a-z]+)/g, `$1<span class="tag">$2</span>`)
+      .replace("___", blank);
+  }
+
+  const pattern = /(\/\/[^\n]*)|(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b(const|let|var|function|return|if|else|for|while|of|new|true|false|null|undefined|typeof)\b|\b(\d+(?:\.\d+)?)\b|(___)/g;
+  let html = "";
+  let last = 0;
+  for (const m of code.matchAll(pattern)) {
+    html += escapeHtml(code.slice(last, m.index));
+    const text = escapeHtml(m[0]);
+    if (m[1]) html += `<span class="com">${text}</span>`;
+    else if (m[2]) html += `<span class="str">${text}</span>`;
+    else if (m[3]) html += `<span class="kw">${text}</span>`;
+    else if (m[4]) html += `<span class="num">${text}</span>`;
+    else html += blank;
+    last = m.index + m[0].length;
+  }
+  return html + escapeHtml(code.slice(last));
+}
+
+// ================================================================
+// Confetti
+// ================================================================
+function confetti(x, y, count) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colours = ["#6cc04a", "#f2c14e", "#e63946", "#3b6fd8", "#ff8fa3", "#4fb3e0"];
+  for (let i = 0; i < count; i++) {
+    const bit = document.createElement("div");
+    bit.className = "confetti";
+    bit.style.left = x + "px";
+    bit.style.top = y + "px";
+    bit.style.background = colours[i % colours.length];
+    document.body.append(bit);
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 120 + Math.random() * 280;
+    const dx = Math.cos(angle) * speed;
+    const dy = Math.sin(angle) * speed - 150;
+    bit.animate(
+      [
+        { transform: "translate(0, 0) rotate(0deg)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 380}px) rotate(${Math.random() * 720}deg)`, opacity: 0 },
+      ],
+      { duration: 1300 + Math.random() * 900, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)" }
+    ).onfinish = () => bit.remove();
+  }
+}
+
+// ================================================================
+// Navigation and controls
+// ================================================================
+function go(n) {
+  slide = Math.max(0, Math.min(TOTAL + 1, n));
+  render();
+}
+
+function resetAll() {
+  answered = {};
+  wrongTries = {};
+  save();
+  document.querySelectorAll(".piece").forEach((g) => g.classList.remove("built"));
+  go(0);
+}
+
+document.querySelector("#app-prev").addEventListener("click", () => go(slide - 1));
+nextBtn.addEventListener("click", () => go(slide + 1));
+document.querySelector("#app-full").addEventListener("click", toggleFullscreen);
+document.querySelector("#app-theme").addEventListener("click", toggleTheme);
+document.querySelector("#app-reset").addEventListener("click", () => {
+  if (confirm("Start over? This takes Sir Hops-a-Lot apart.")) resetAll();
+});
+
+// Clicks inside the slide (answer buttons, Start, Review…)
+stageEl.addEventListener("click", (event) => {
+  const answer = event.target.closest("[data-answer]");
+  if (answer) return choose(Number(answer.dataset.answer));
+  const goTo = event.target.closest("[data-go]");
+  if (goTo) return go(Number(goTo.dataset.go));
+  if (event.target.closest("[data-reset]")) resetAll();
+});
+
+document.addEventListener("keydown", (event) => {
+  // Don't steal keys while someone types in a demo input box
+  // (press Esc to leave the box and use the shortcuts again)
+  if (event.target.matches("input, textarea")) {
+    if (event.key === "Escape") event.target.blur();
+    return;
+  }
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  const key = event.key.toLowerCase();
+  if (key === "arrowright" || key === "pagedown" || key === " ") { event.preventDefault(); go(slide + 1); }
+  else if (key === "arrowleft" || key === "pageup") { event.preventDefault(); go(slide - 1); }
+  else if (key === "home") go(0);
+  else if (key === "f") toggleFullscreen();
+  else if (key === "t") toggleTheme();
+  else if ("1234".includes(key) && key.length === 1) choose(Number(key) - 1);
+  else if ("abcd".includes(key) && key.length === 1) choose("abcd".indexOf(key));
+});
+
+// Demo forms must never reload the page (that would lose your place)
+document.addEventListener("submit", (event) => event.preventDefault());
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const dark = root.dataset.theme
+    ? root.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem(SAVE_KEY + "-theme", root.dataset.theme); } catch {}
+}
+
+// ================================================================
+// Start
+// ================================================================
+load();
+try {
+  const theme = localStorage.getItem(SAVE_KEY + "-theme");
+  if (theme) document.documentElement.dataset.theme = theme;
+} catch {}
+QUESTIONS.forEach((q, i) => { if (answered[i]) buildPiece(q.piece, false); });
+render();
+</script>
+</body>
+</html>
