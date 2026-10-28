@@ -1,5 +1,5 @@
 import chalk from 'chalk';
 
-const log = console.log;
-
-log(chalk.blue('Hello') + 'World' + chalk.red('!'));
+console.log(chalk.blue('This text is blue!'));
+console.log(chalk.red('This text is red!'));
+console.log(chalk.green('Success!'));
