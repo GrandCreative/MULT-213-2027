@@ -1,0 +1,18 @@
+{
+  "location": {
+    "city": "Regina",
+    "province": "Saskatchewan",
+    "territory": "Treaty 4"
+  },
+  "work": {
+    "title": "Instructor, Interactive Design and Technology",
+    "employer": "Saskatchewan Polytechnic",
+    "teaches": [
+      "UX/UI",
+      "Web Design",
+      "Front-End Development",
+      "Social Media",
+      "3D Modelling"
+    ]
+  }
+}
