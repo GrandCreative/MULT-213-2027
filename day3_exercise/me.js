@@ -16,3 +16,7 @@ const me = `{
     ]
   }
 }`;
+
+const meObj = JSON.parse(me);
+
+console.log(meObj.work.teaches[1]);
