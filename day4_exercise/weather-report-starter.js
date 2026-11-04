@@ -19,7 +19,7 @@ const weatherWords = {
 async function main() {
   // 1. Get the data
   // PART 1: paste your API URL from the Open-Meteo docs page between the quotes
-  const url = '';
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=50.4501&longitude=-104.6178&daily=temperature_2m_max,temperature_2m_min&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto';
 
   let weatherData;
 
@@ -32,7 +32,7 @@ async function main() {
     process.exit(1);
   }
 
-  // console.log(weatherData);  // uncomment to see everything the API sent back
+  console.log(weatherData);  // uncomment to see everything the API sent back
 
   // 2. Pull out the parts we want
   // PART 2: replace each '???' (and each []) with the right value from weatherData
