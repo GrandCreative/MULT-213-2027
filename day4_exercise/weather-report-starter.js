@@ -39,15 +39,15 @@ async function main() {
   const current = weatherData.current.temperature_2m;
   const daily = weatherData.daily_units.temperature_2m_max;
 
-  const conditions = weatherData.current.weather_code;
+  const conditions = weatherWords[weatherData.current.weather_code] ?? 'Unknown';
   const temperature = weatherData.current.temperature_2m;
   const feelsLike = weatherData.current.apparent_temperature;
   const humidity = weatherData.current.relative_humidity_2m;
   const windSpeed = weatherData.current.wind_speed_10m;
 
-  const days = [];
-  const lows = [];
-  const highs = [];
+  const days = daily.time;
+  const lows = daily.temperature_2m_min;
+  const highs = daily.temperature_2m_max;
 
   // 3. Render the report (no changes needed here)
   console.log('');
