@@ -36,14 +36,14 @@ async function main() {
 
   // 2. Pull out the parts we want
   // PART 2: replace each '???' (and each []) with the right value from weatherData
-  const current = '???';
-  const daily = '???';
+  const current = weatherData.current.temperature_2m;
+  const daily = weatherData.daily_units.temperature_2m_max;
 
-  const conditions = '???';
-  const temperature = '???';
-  const feelsLike = '???';
-  const humidity = '???';
-  const windSpeed = '???';
+  const conditions = weatherData.current.weather_code;
+  const temperature = weatherData.current.temperature_2m;
+  const feelsLike = weatherData.current.apparent_temperature;
+  const humidity = weatherData.current.relative_humidity_2m;
+  const windSpeed = weatherData.current.wind_speed_10m;
 
   const days = [];
   const lows = [];
