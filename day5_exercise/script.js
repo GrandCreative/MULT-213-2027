@@ -23,7 +23,7 @@ async function main() {
 
   // 1. Get the data
   // PART 1: build the NeoWs feed URL between the backticks, using today and NASA_API_KEY
-  const url = ``;
+  const url = `https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=${NASA_API_KEY}`;
 
   let data;
 
