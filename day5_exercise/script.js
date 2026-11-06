@@ -57,6 +57,17 @@ async function main() {
 
   // 4. Build a card for each asteroid
   // PART 2: loop over the asteroids and add a card for each one
+  for (const asteroid of asteroids) {
+    const approach = asteroid.close_approach_data[0];
+    const sizeMeters = Math.round(asteroid.estimated_diameter.meters.estimated_diameter_max);
+    const speedKmh = Math.round(Number(approach.relitive_velocity.kilometers_per_hour));
+    const missLunar = Number(approach.miss_distance.lunar).toFixed(1);
+
+    const card = document.createElement('article');
+    card.classList.add('card');
+
+    listEl.append(card);
+  }
 
 
 }
