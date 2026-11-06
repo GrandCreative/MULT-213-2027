@@ -42,10 +42,17 @@ async function main() {
 
   // 2. Find the elements on the page
   // PART 2: select #summary and #asteroids
+  const summaryEl = document.querySelector('#summary');
+  const listEl = document.querySelector('#asteroids');
 
+  console.log(listEl);
 
   // 3. Pull out the list of asteroids for today
   // PART 2: get today's array, clear "Loading...", and fill in the summary
+  const asteroids = data.near_earth_objects[today];
+
+  status.textContent = '';
+  summaryEl.textContent = `${data.element_count} asteroids passed Earth on ${today}.`;
 
 
   // 4. Build a card for each asteroid
