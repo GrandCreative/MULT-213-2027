@@ -1,0 +1,2 @@
+# Holds your real API key. Never commit it.
+config.js
