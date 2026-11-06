@@ -66,9 +66,19 @@ async function main() {
     const card = document.createElement('article');
     card.classList.add('card');
 
+    addline(card, 'h2', asteroid.name);
+    addLine(card, 'p', `Size: up to ${sizeMeters} m across`);
+    addLine(card, 'p', `Speed: ${speedKmh.toLocaleString()} km/h`);
+    addLine(card, 'p', `Miss distance: ${missLunar} times the Moon's distance`);
+
+    if (asteroid.is_potentially_hazardous_asteroid) {
+
+      card.classList.add('hazard');
+      addLine(card, 'p', 'Potentially hazardous').classList.add('hazard-label');
+    }
+
     listEl.append(card);
   }
-
 
 }
 
