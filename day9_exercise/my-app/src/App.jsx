@@ -1,7 +1,14 @@
-function App() {
-  return (
-    <h1>Hello, React!</h1>
-  )
+function Greeting(props) {
+  return <p>Hello {props.name}!</p>;
 }
 
-export default App
+function App() {
+  return (
+    <>
+      <Greeting name="John" />
+      <Greeting name="Priya" />
+    </>
+  );
+}
+
+export default App;
