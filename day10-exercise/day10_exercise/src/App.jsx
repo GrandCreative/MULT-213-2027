@@ -1,7 +1,11 @@
+import Profile from './profile.jsx';
+
 function App() {
   return (
-    <h1>Hello, React!</h1>
-  )
+
+    <Profile />
+
+  );
 }
 
-export default App
+export default App;
